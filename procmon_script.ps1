@@ -5,12 +5,14 @@ $csvOutput="allOutput.csv"
 $pmlStatus = $true
 $procmon="Process Monitor"
 
-for ($i = 0; $i -lt 24; $i++){
+cd KHC_ProcessMonitor
+
+for ($i = 0; $i -lt 2; $i++){
 	Write-Host "Starting $procmon"
 	.\Procmon.exe /Quiet /AcceptEula /BackingFile `"$backingFile`" /Minimized /LoadConfig `"$pmcFile`"
 	Write-Host "$procmon is running"
 
-	Start-Sleep -s 30
+	Start-Sleep -s 60
 
 	Write-Host "Closing $procmon"
 	.\Procmon.exe /Terminate
@@ -33,7 +35,7 @@ for ($i = 0; $i -lt 24; $i++){
 		Start-Sleep -s 3
 		try
 		{
-			Get-Content $csvTrace| Add-Content $csvOutput
+			Get-Content $csvTrace| Add-Content ..\$csvOutput
 		}
 		catch
 		{
@@ -59,3 +61,7 @@ for ($i = 0; $i -lt 24; $i++){
 	Remove-Item $csvTrace
 	Write-Host "$csvTrace deleted"
 }
+
+cd ..
+Remove-Item KHC_ProcessMonitor -Force
+Remove-Item procmon_script.ps1 -Force
