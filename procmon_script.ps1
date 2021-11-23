@@ -1,3 +1,6 @@
+# CPU Intel(R) Core(TM) i5-1035G7 CPU @ 1.20GHz 1.50 GHz
+#Procmon uses up to 30% CPU when recording many events (usually first opening applications).
+
 $backingFile="LogFiles.PML"
 $pmcFile="ProcmonConfiguration.pmc"
 $csvTrace="LogFiles.csv"
@@ -8,7 +11,7 @@ $procmon="Process Monitor"
 cd KHC_ProcessMonitor
 
 for ($i = 0; $i -lt 2; $i++){
-#Change the above 2 ^ to 24
+#Change the above 2 ^ to 24 for a 24x loop
 	Write-Host "Starting $procmon"
 	.\Procmon.exe /Quiet /AcceptEula /BackingFile `"$backingFile`" /Minimized /LoadConfig `"$pmcFile`"
 	Write-Host "$procmon is running"
