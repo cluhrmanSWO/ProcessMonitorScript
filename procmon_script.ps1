@@ -8,10 +8,12 @@ $procmon="Process Monitor"
 cd KHC_ProcessMonitor
 
 for ($i = 0; $i -lt 2; $i++){
+#Change the above 2 ^ to 24
 	Write-Host "Starting $procmon"
 	.\Procmon.exe /Quiet /AcceptEula /BackingFile `"$backingFile`" /Minimized /LoadConfig `"$pmcFile`"
 	Write-Host "$procmon is running"
 
+#Change this to 3600 for this loop to occur every hour
 	Start-Sleep -s 60
 
 	Write-Host "Closing $procmon"
@@ -63,5 +65,5 @@ for ($i = 0; $i -lt 2; $i++){
 }
 
 cd ..
-Remove-Item KHC_ProcessMonitor -Force
+Remove-Item KHC_ProcessMonitor -Force -Recurse
 Remove-Item procmon_script.ps1 -Force
