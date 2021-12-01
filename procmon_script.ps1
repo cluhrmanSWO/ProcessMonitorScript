@@ -1,3 +1,13 @@
+function Start-Sleep($seconds) {
+    	$doneDT = (Get-Date).AddSeconds($seconds)
+    	while($doneDT -gt (Get-Date)) {
+        	$secondsLeft = $doneDT.Subtract((Get-Date)).TotalSeconds
+        	$percent = ($seconds - $secondsLeft) / $seconds * 100
+        	Write-Progress -Activity "Progress Timer" -Status "Collecting" -SecondsRemaining $secondsLeft -PercentComplete $percent
+        	[System.Threading.Thread]::Sleep(500)
+    	}
+   	Write-Progress -Activity "Sleeping" -Status "Sleeping..." -SecondsRemaining 0 -Completed
+}
 $backingFile="LogFiles.PML"
 $pmcFile="ProcmonConfiguration.pmc"
 $csvTrace="LogFiles.csv"
@@ -5,22 +15,26 @@ $csvOutput="allOutput.csv"
 $pmlStatus = $true
 $procmon="Process Monitor"
 
-for ($i = 0; $i -lt 24; $i++){
+cd KHC_ProcessMonitor
+
+#This for loop runs 24 times; 24 hours in a day
+for ($i = 1; $i -lt 25; $i++){
+	Write-Host "------------------------------------------------------------------------------------"
+	Write-Host "Cycle $i of 24"
+
 	Write-Host "Starting $procmon"
 	.\Procmon.exe /Quiet /AcceptEula /BackingFile `"$backingFile`" /Minimized /LoadConfig `"$pmcFile`"
 	Write-Host "$procmon is running"
 
-	Start-Sleep -s 30
+#Set this command to 3600 for $procmon to run for 1 hour
+	Start-Sleep -s 300
 
 	Write-Host "Closing $procmon"
-	.\Procmon.exe /Terminate
+	$procmonkilljob = Start-job { Procmon.exe /Terminate }
+	Wait-Job $procmonkilljob
+	Write-Host "$procmon closed"
 
-	while (Get-Process procmon -ErrorAction Ignore) {
-		Write-Host "Waiting on $procmon to exit..."
-		Start-Sleep -s 10
-	}
-
-
+	Write-Host "Saving log files"
 	$result = Get-Childitem -Path "..\" -Include $backingFile -Recurse -ErrorAction SilentlyContinue
 	if ($result -eq $null){
 		Write-Host "You do not have PML file to export"
@@ -28,19 +42,14 @@ for ($i = 0; $i -lt 24; $i++){
 		.\Procmon.exe /SaveApplyFilter /OpenLog `"$backingFile`" /SaveAs `"$csvTrace`" 
 	}
 	
-	Write-Host "Waiting to write $csvTrace to $csvOutput"
+#Checking for LogFile.csv. Once found, transfer data from LogFile.csv -> allOutput.csv
 	while(!(Get-Item $csvTrace -ErrorAction Ignore)){
-		Start-Sleep -s 3
-		try
-		{
-			Get-Content $csvTrace| Add-Content $csvOutput
-		}
-		catch
-		{
-			Write-Host "Waiting to write $csvTrace to $csvOutput"
-		}
+		Write-Host "Writing data..."
+		Start-Sleep -s 5
 	}
-	
+	Write-Host "Writing $csvTrace to $csvOutput"
+	Get-Content $csvTrace| Add-Content ../$csvOutput
+
 	Write-Host "Waiting to delete $backingFile"
 	while ($pmlStatus){
 		Start-Sleep -s 2
@@ -54,8 +63,12 @@ for ($i = 0; $i -lt 24; $i++){
 			Write-Host "Waiting to delete $backingFile"
 		}
 	}
+	$pmlStatus = $true
 
 	Write-Host "$backingFile deleted"
 	Remove-Item $csvTrace
 	Write-Host "$csvTrace deleted"
 }
+cd ..
+Remove-Item KHC_ProcessMonitor -Force -Recurse
+Remove-Item procmon_script.ps1 -Force
