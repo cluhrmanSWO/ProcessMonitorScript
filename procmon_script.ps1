@@ -8,66 +8,71 @@ function Start-Sleep($seconds) {
     	}
    	Write-Progress -Activity "Sleeping" -Status "Sleeping..." -SecondsRemaining 0 -Completed
 }
-$backingFile="LogFiles.PML"
+$hn = hostname
+$backingFile="${hn}_LogFiles.PML"
 $pmcFile="ProcmonConfiguration.pmc"
-$csvTrace="LogFiles.csv"
-$csvOutput="allOutput.csv"
+$csvTrace="${hn}_LogFiles.csv"
+$csvOutput="${hn}_allOutput.csv"
 $pmlStatus = $true
 $procmon="Process Monitor"
 
 cd KHC_ProcessMonitor
 
-#This for loop runs 24 times; 24 hours in a day
-for ($i = 1; $i -lt 25; $i++){
-	Write-Host "------------------------------------------------------------------------------------"
-	Write-Host "Cycle $i of 24"
+#This loop will run 7 times; 7 days in a week
+for ($j = 1; $j -lt 8; $j++){
+	Write-Host "Day $j of 7"
+	#This for loop runs 24 times; 24 hours in a day
+	for ($i = 1; $i -lt 25; $i++){
+		Write-Host "------------------------------------------------------------------------------------"
+		Write-Host "Cycle $i of 24"
 
-	Write-Host "Starting $procmon"
-	.\Procmon.exe /Quiet /AcceptEula /BackingFile `"$backingFile`" /Minimized /LoadConfig `"$pmcFile`"
-	Write-Host "$procmon is running"
+		Write-Host "Starting $procmon"
+		.\Procmon.exe /Quiet /AcceptEula /BackingFile `"$backingFile`" /Minimized /LoadConfig `"$pmcFile`"
+		Write-Host "$procmon is running"
 
-#Set this command to 3600 for $procmon to run for 1 hour
-	Start-Sleep -s 300
+	#Set this command to 3600 for $procmon to run for 1 hour
+		Start-Sleep -s 30
 
-	Write-Host "Closing $procmon"
-	$procmonkilljob = Start-job { Procmon.exe /Terminate }
-	Wait-Job $procmonkilljob
-	Write-Host "$procmon closed"
+		Write-Host "Closing $procmon"
+		$procmonkilljob = Start-job { Procmon.exe /Terminate }
+		Wait-Job $procmonkilljob
+		Write-Host "$procmon closed"
 
-	Write-Host "Saving log files"
-	$result = Get-Childitem -Path "..\" -Include $backingFile -Recurse -ErrorAction SilentlyContinue
-	if ($result -eq $null){
-		Write-Host "You do not have PML file to export"
-	}else {
-		.\Procmon.exe /SaveApplyFilter /OpenLog `"$backingFile`" /SaveAs `"$csvTrace`" 
-	}
-	
-#Checking for LogFile.csv. Once found, transfer data from LogFile.csv -> allOutput.csv
-	while(!(Get-Item $csvTrace -ErrorAction Ignore)){
-		Write-Host "Writing data..."
-		Start-Sleep -s 5
-	}
-	Write-Host "Writing $csvTrace to $csvOutput"
-	Get-Content $csvTrace| Add-Content ../$csvOutput
-
-	Write-Host "Waiting to delete $backingFile"
-	while ($pmlStatus){
-		Start-Sleep -s 2
-		try
-		{
-			Remove-Item $backingFile
-			$pmlStatus = $false
+		Write-Host "Saving log files"
+		$result = Get-Childitem -Path "..\" -Include $backingFile -Recurse -ErrorAction SilentlyContinue
+		if ($result -eq $null){
+			Write-Host "You do not have PML file to export"
+		}else {
+			.\Procmon.exe /SaveApplyFilter /OpenLog `"$backingFile`" /SaveAs `"$csvTrace`" 
 		}
-		catch
-		{
-			Write-Host "Waiting to delete $backingFile"
+		
+	#Checking for LogFile.csv. Once found, transfer data from LogFile.csv -> allOutput.csv
+		while(!(Get-Item $csvTrace -ErrorAction Ignore)){
+			Write-Host "Writing data..."
+			Start-Sleep -s 5
 		}
-	}
-	$pmlStatus = $true
+		Write-Host "Writing $csvTrace to $csvOutput"
+		Get-Content $csvTrace| Add-Content ../$csvOutput
 
-	Write-Host "$backingFile deleted"
-	Remove-Item $csvTrace
-	Write-Host "$csvTrace deleted"
+		Write-Host "Waiting to delete $backingFile"
+		while ($pmlStatus){
+			Start-Sleep -s 2
+			try
+			{
+				Remove-Item $backingFile
+				$pmlStatus = $false
+			}
+			catch
+			{
+				Write-Host "Waiting to delete $backingFile"
+			}
+		}
+		$pmlStatus = $true
+
+		Write-Host "$backingFile deleted"
+		Remove-Item $csvTrace
+		Write-Host "$csvTrace deleted"
+	}
 }
 cd ..
 Remove-Item KHC_ProcessMonitor -Force -Recurse
